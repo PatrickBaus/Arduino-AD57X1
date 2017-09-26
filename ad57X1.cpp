@@ -17,10 +17,10 @@
 #define AD5781_SPI_CLOCK_FREQ (1*1000*1000)   // 30 MHz SPI clock is the maximum specified
 // Use CPOL = 0,  CPHA =1 for ADI DACs
 
-AD5781::AD5781(uint8_t cs_pin, uint8_t ldac_pin, double referenceVoltage) : cs_pin(cs_pin), ldac_pin(ldac_pin), referenceVoltage(referenceVoltage), spi_settings(SPISettings(AD5781_SPI_CLOCK_FREQ, MSBFIRST, SPI_MODE1)) {
+AD5781::AD5781(uint8_t cs_pin, uint8_t ldac_pin) : cs_pin(cs_pin), ldac_pin(ldac_pin), spi_settings(SPISettings(AD5781_SPI_CLOCK_FREQ, MSBFIRST, SPI_MODE1)) {
 }
 
-AD5781::AD5781(uint8_t cs_pin, double referenceVoltage) : cs_pin(cs_pin), ldac_pin(-1), referenceVoltage(referenceVoltage), spi_settings(SPISettings(AD5781_SPI_CLOCK_FREQ, MSBFIRST, SPI_MODE1)) {
+AD5781::AD5781(uint8_t cs_pin) : cs_pin(cs_pin), ldac_pin(-1), spi_settings(SPISettings(AD5781_SPI_CLOCK_FREQ, MSBFIRST, SPI_MODE1)) {
 }
 
 // TODO: use an SPI object to select the SPI bus
@@ -42,6 +42,9 @@ void AD5781::writeSPI(uint32_t value) {
 }
 
 void AD5781::updateControlRegister() {
+  #ifdef ARDUINO_AD5762R_DEBUG
+  Serial.println("Updating control register: ");
+  #endif
   this->writeSPI(this->WRITE_REGISTERS | this->CONTROL_REGISTER | this->controlRegister);
 }
 
@@ -51,6 +54,9 @@ void AD5781::reset() {
 
 // value is an 18-bit value
 void AD5781::setValue(uint32_t value) {
+  #ifdef ARDUINO_AD5762R_DEBUG
+  Serial.println("Setting DAC value:");
+  #endif
   uint32_t command = this->WRITE_REGISTERS | this->DAC_REGISTER | ((value << this->DAC_REGSISTER_VALUE_OFFSET) & 0xFFFFF);
 
   this->writeSPI(command);
@@ -58,13 +64,11 @@ void AD5781::setValue(uint32_t value) {
 }
 
 void AD5781::enableOutput() {
-  this->setInternalAmplifier(false);
+  #ifdef ARDUINO_AD5762R_DEBUG
+  Serial.println("Enabling output.");
+  #endif
   this->setOutputClamp(false);
   this->setTristateMode(false);
-  this->setOffsetBinaryEncoding(false);
-  // If the reference voltage range is larger than 10V
-  // some linearity compensation needs to be applied.
-  this->setReferenceInputRange(this->referenceVoltage > 10.0);
   this->updateControlRegister();
 }
 

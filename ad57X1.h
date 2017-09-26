@@ -23,8 +23,8 @@
 
 class AD5781 {
   public:
-    AD5781(uint8_t cs_pin, uint8_t ldac_pin, double referenceVoltage);
-    AD5781(uint8_t cs_pin, double referenceVoltage);
+    AD5781(uint8_t cs_pin, uint8_t ldac_pin);
+    AD5781(uint8_t cs_pin);
     void setValue(uint32_t value);
     void enableOutput();
     void setOffsetBinaryEncoding(bool enable);
@@ -71,8 +71,13 @@ class AD5781 {
 
     uint8_t cs_pin;   // The ~Chip select pin used to address the DAC
     int16_t ldac_pin;   // The ~LDAC select pin used to address the DAC
-    double referenceVoltage;
-    uint32_t controlRegister = 0b0000101110;    // This is the default register (see p. 22 of the datasheet)
+    uint32_t controlRegister =
+        (1 << RBUF_REGISTER)
+      | (1 << OUTPUT_CLAMP_TO_GND_REGISTER)
+      | (1 << OUTPUT_TRISTATE_REGISTER)
+      | (1 << OFFSET_BINARY_REGISTER)
+      | (0 << SDO_DISABLE_REGISTER)
+      | (REFERENCE_RANGE_10V << LINEARITY_COMPENSATION_REGISTER);    // This is the default register after reset (see p. 22 of the datasheet)
     SPISettings spi_settings;
 };
 
