@@ -1,2 +1,2 @@
 # Arduino-AD57X1
-Arduino library for the Analog Devices AD5781/AD5791 18-/20-bit precision DAC
+This library is still work in progress and not all features of the DACs are supported. Basic functionality is implemented. More documentation will be added soon.
