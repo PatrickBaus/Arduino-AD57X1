@@ -38,7 +38,7 @@ void AD57X1::reset() {
   this->enableOutput();
 }
 
-// value is an 18-bit value
+// value is an 18 or 20 bit value
 void AD57X1::setValue(uint32_t value) {
   uint32_t command = this->WRITE_REGISTERS | this->DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
