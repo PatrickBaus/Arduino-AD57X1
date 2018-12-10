@@ -14,84 +14,64 @@
  */
 #include "ad57X1.h"
 
-#define AD5781_SPI_CLOCK_FREQ (1*1000*1000)   // 30 MHz SPI clock is the maximum specified
-// Use CPOL = 0,  CPHA =1 for ADI DACs
-
-AD5781::AD5781(uint8_t cs_pin, uint8_t ldac_pin) : cs_pin(cs_pin), ldac_pin(ldac_pin), spi_settings(SPISettings(AD5781_SPI_CLOCK_FREQ, MSBFIRST, SPI_MODE1)) {
+// Use CPOL = 0,  CPHA = 1 for ADI DACs
+AD57X1::AD57X1(uint8_t cs_pin, SPIClass* _spi, const uint8_t _VALUE_OFFSET, uint32_t spiClockFrequency, uint8_t ldac_pin) : VALUE_OFFSET(_VALUE_OFFSET), spi(_spi), cs_pin(cs_pin), ldac_pin(ldac_pin), spi_settings(SPISettings(spiClockFrequency, MSBFIRST, SPI_MODE1)) {
 }
 
-AD5781::AD5781(uint8_t cs_pin) : cs_pin(cs_pin), ldac_pin(-1), spi_settings(SPISettings(AD5781_SPI_CLOCK_FREQ, MSBFIRST, SPI_MODE1)) {
-}
-
-// TODO: use an SPI object to select the SPI bus
-void AD5781::writeSPI(uint32_t value) {
-  SPI1.beginTransaction(this->spi_settings);
+void AD57X1::writeSPI(uint32_t value) {
+  this->spi->beginTransaction(this->spi_settings);
   digitalWrite (this->cs_pin, LOW);
 
-  #ifdef ARDUINO_AD5762R_DEBUG
-  Serial.print("Writing to SPI:");
-  Serial.println(value, HEX);
-  #endif
-
-  SPI1.transfer((value >> 16) & 0xFF);
-  SPI1.transfer((value >> 8) & 0xFF);
-  SPI1.transfer((value >> 0) & 0xFF);
+  this->spi->transfer((value >> 16) & 0xFF);
+  this->spi->transfer((value >> 8) & 0xFF);
+  this->spi->transfer((value >> 0) & 0xFF);
 
   digitalWrite(this->cs_pin, HIGH);
-  SPI1.endTransaction();
+  this->spi->endTransaction();
 }
 
-void AD5781::updateControlRegister() {
-  #ifdef ARDUINO_AD5762R_DEBUG
-  Serial.println("Updating control register: ");
-  #endif
+void AD57X1::updateControlRegister() {
   this->writeSPI(this->WRITE_REGISTERS | this->CONTROL_REGISTER | this->controlRegister);
 }
 
-void AD5781::reset() {
+void AD57X1::reset() {
   this->enableOutput();
 }
 
 // value is an 18-bit value
-void AD5781::setValue(uint32_t value) {
-  #ifdef ARDUINO_AD5762R_DEBUG
-  Serial.println("Setting DAC value:");
-  #endif
-  uint32_t command = this->WRITE_REGISTERS | this->DAC_REGISTER | ((value << this->DAC_REGSISTER_VALUE_OFFSET) & 0xFFFFF);
+void AD57X1::setValue(uint32_t value) {
+  uint32_t command = this->WRITE_REGISTERS | this->DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
   this->writeSPI(command);
   this->writeSPI(this->SW_CONTROL_REGISTER | this->SW_CONTROL_LDAC);
 }
 
-void AD5781::enableOutput() {
-  #ifdef ARDUINO_AD5762R_DEBUG
-  Serial.println("Enabling output.");
-  #endif
+void AD57X1::enableOutput() {
   this->setOutputClamp(false);
   this->setTristateMode(false);
   this->updateControlRegister();
 }
 
-void AD5781::setInternalAmplifier(bool enable) {
+void AD57X1::setInternalAmplifier(bool enable) {
   // (1 << this->RBUF_REGISTER) : internal amplifier is disabled (default)
   // (0 << this->RBUF_REGISTER) : internal amplifier is enabled
   this->controlRegister = (this->controlRegister & ~(1 << this->RBUF_REGISTER)) | (!enable << this->RBUF_REGISTER);
 }
 
 // Setting this to enabled will overrule the tristate mode and clamp the output to GND
-void AD5781::setOutputClamp(bool enable) {
+void AD57X1::setOutputClamp(bool enable) {
   // (1 << this->OUTPUT_CLAMP_TO_GND_REGISTER) : the output is clamped to GND (default)
   // (0 << this->OUTPUT_CLAMP_TO_GND_REGISTER) : the dac is in normal mode
   this->controlRegister = (this->controlRegister & ~(1 << this->OUTPUT_CLAMP_TO_GND_REGISTER)) | (enable << this->OUTPUT_CLAMP_TO_GND_REGISTER);
 }
 
-void AD5781::setTristateMode(bool enable) {
+void AD57X1::setTristateMode(bool enable) {
   // (1 << this->OUTPUT_TRISTATE_REGISTER) : the dac output is in tristate mode (default)
   // (0 << this->OUTPUT_TRISTATE_REGISTER) : the dac is in normal mode
   this->controlRegister = (this->controlRegister & ~(1 << this->OUTPUT_TRISTATE_REGISTER)) | (enable << this->OUTPUT_TRISTATE_REGISTER);
 }
 
-void AD5781::setOffsetBinaryEncoding(bool enable) {
+void AD57X1::setOffsetBinaryEncoding(bool enable) {
   // (1 << this->OFFSET_BINARY_REGISTER) : the dac uses offset binary encoding, should be used when writing unsigned ints
   // (0 << this->OFFSET_BINARY_REGISTER) : the dac uses 2s complement encoding, should be used when writing signed ints (default)
   this->controlRegister = (this->controlRegister & ~(1 << this->OFFSET_BINARY_REGISTER)) | (enable << this->OFFSET_BINARY_REGISTER);
@@ -102,11 +82,11 @@ void AD5781::setOffsetBinaryEncoding(bool enable) {
  */
 // enable = 0 -> Range 0-10 V
 // enable = 1 -> Range 0-20 V
-void AD5781::setReferenceInputRange(bool enableCompensation) {
+void AD57X1::setReferenceInputRange(bool enableCompensation) {
   this->controlRegister = (this->controlRegister & ~(0b1111 << this->LINEARITY_COMPENSATION_REGISTER)) | ((enableCompensation ? this->REFERENCE_RANGE_20V : this->REFERENCE_RANGE_10V) << this->LINEARITY_COMPENSATION_REGISTER);
 }
 
-void AD5781::begin() {
+void AD57X1::begin() {
   pinMode(this->cs_pin, OUTPUT);
   digitalWrite(this->cs_pin, HIGH);
 
