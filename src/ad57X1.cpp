@@ -20,44 +20,35 @@ AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _VALUE_OFFSE
   spi(_spi), PIN_CS(_cs_pin),
   PIN_LDAC(_ldac_pin),
   CS_POLARITY(cs_polarity),
-  spi_settings(SPISettings(spiClockFrequency, MSBFIRST, SPI_MODE1)),
-  InternalAmplifier(false){
+  spi_settings(SPISettings(spiClockFrequency, MSBFIRST, SPI_MODE1)) {
 }
 
 void AD57X1::writeSPI(const uint32_t value) {
   digitalWrite (this->PIN_CS, this->CS_POLARITY);
-  delayMicroseconds(5); // t4
+
   this->spi->beginTransaction(this->spi_settings);
   this->spi->transfer((value >> 16) & 0xFF);
   this->spi->transfer((value >> 8) & 0xFF);
   this->spi->transfer((value >> 0) & 0xFF);
   this->spi->endTransaction();
-  delayMicroseconds(2); // t5
+
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
-  
 }
 
 uint32_t AD57X1::readSPI(const uint32_t value) {
-
-  uint32_t readvalue;
+  uint32_t result;
   this->writeSPI(value);
-  delayMicroseconds(50); // t6
-  
   digitalWrite (this->PIN_CS, this->CS_POLARITY);
-  delayMicroseconds(5); // t4
 
   this->spi->beginTransaction(this->spi_settings);
-  readvalue  = (uint32_t)this->spi->transfer(value) << 16;
-  readvalue |= (uint32_t)this->spi->transfer(value) << 8;
-  readvalue |= (uint32_t)this->spi->transfer(value);
+  result  = (uint32_t)this->spi->transfer(0x00) << 16;
+  result |= (uint32_t)this->spi->transfer(0x00) << 8;
+  result |= (uint32_t)this->spi->transfer(0x00);
   this->spi->endTransaction();
 
-  delayMicroseconds(2); // t5
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
-
   return readvalue;
 }
-
 
 void AD57X1::updateControlRegister() {
   this->writeSPI(this->WRITE_REGISTERS | this->CONTROL_REGISTER | this->controlRegister);
@@ -74,32 +65,17 @@ void AD57X1::setValue(const uint32_t value) {
   this->writeSPI(command);
 
   if (this->PIN_LDAC >= 0) {
-    delayMicroseconds(25);  // t11
     digitalWrite(this->PIN_LDAC, HIGH);
-    delayMicroseconds(20); // t12
     digitalWrite(this->PIN_LDAC, LOW);
   } else {
     this->writeSPI(this->SW_CONTROL_REGISTER | this->SW_CONTROL_LDAC);
-  }  
+  }
 }
 
-// value is an 18 or 20 bit value
 uint32_t AD57X1::readValue() {
   uint32_t command = this->READ_REGISTERS | this->DAC_REGISTER;
-
-  return this->readSPI(command);
-}
-
-
-void AD57X1::setTension(const int32_t millivolt) {
-
-  uint32_t value;  
-  if (this->InternalAmplifier) {
-    value=((millivolt+5000)/10000.D)*0XFFFFF;
-  } else {
-    value=(millivolt/5000.D)*0XFFFFF;
-  }
-  setValue(value);
+  uint32_t result = this->readSPI(command) >> this->VALUE_OFFSET;
+  return result;
 }
 
 void AD57X1::enableOutput() {
@@ -112,7 +88,6 @@ void AD57X1::setInternalAmplifier(const bool enable) {
   // (1 << this->RBUF_REGISTER) : internal amplifier is disabled (default)
   // (0 << this->RBUF_REGISTER) : internal amplifier is enabled
   this->controlRegister = (this->controlRegister & ~(1 << this->RBUF_REGISTER)) | (!enable << this->RBUF_REGISTER);
-  this->InternalAmplifier=enable;
 }
 
 // Setting this to enabled will overrule the tristate mode and clamp the output to GND
