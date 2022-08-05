@@ -21,22 +21,24 @@
 
 class AD57X1 {
   public:
-    AD57X1(uint8_t cs_pin, SPIClass* _spi, const uint8_t VALUE_OFFSET, uint32_t spiClockFrequency, uint8_t ldac_pin);
-    void setValue(uint32_t value);
+    AD57X1(const uint8_t cs_pin, SPIClass* const _spi, const uint8_t VALUE_OFFSET, const uint32_t spiClockFrequency, uint8_t const ldac_pin, const bool cs_polarity);
+    void setValue(const uint32_t value);
+    uint32_t readValue();
+  void setTension(const int32_t millivolt);
     void enableOutput();
-    void setOffsetBinaryEncoding(bool enable);
-    void setInternalAmplifier(bool enable);
-    void setOutputClamp(bool enable);
-    void setTristateMode(bool enable);
-    void setReferenceInputRange(bool enable);
+    void setOffsetBinaryEncoding(const bool enable);
+    void setInternalAmplifier(const bool enable);
+    void setOutputClamp(const bool enable);
+    void setTristateMode(const bool enable);
+    void setReferenceInputRange(const bool enable);
     void updateControlRegister();
-    void setClearCodeValue(uint32_t value);
+    void setClearCodeValue(const uint32_t value);
     void reset();
-    void begin();
+    void begin(const bool initSpi=true);
 
   private:
     const uint8_t VALUE_OFFSET;
-    SPIClass* spi;
+    SPIClass* const spi;
     
   protected:
     // DAC read/write mode
@@ -65,10 +67,12 @@ class AD57X1 {
     static const uint32_t SW_CONTROL_REGISTER = 0b100UL << 20;
     static const uint8_t SW_CONTROL_LDAC = 0b001;
 
-    void writeSPI(uint32_t value);
+    void writeSPI(const uint32_t value);
+    uint32_t readSPI(const uint32_t value);
 
-    uint8_t cs_pin;   // The ~Chip select pin used to address the DAC
-    int16_t ldac_pin;   // The ~LDAC select pin used to address the DAC
+    const uint8_t PIN_CS;   // The ~Chip select pin used to address the DAC
+    const int16_t PIN_LDAC;   // The ~LDAC select pin used to address the DAC
+    const bool CS_POLARITY;
     uint32_t controlRegister =
         (1 << RBUF_REGISTER)
       | (1 << OUTPUT_CLAMP_TO_GND_REGISTER)
@@ -77,15 +81,16 @@ class AD57X1 {
       | (0 << SDO_DISABLE_REGISTER)
       | (REFERENCE_RANGE_10V << LINEARITY_COMPENSATION_REGISTER);    // This is the default register after reset (see p. 22 of the datasheet)
     SPISettings spi_settings;
+    bool InternalAmplifier;
 };
 
 class AD5781: public AD57X1 {
   public:
-    AD5781(uint8_t cs_pin, SPIClass* spi, uint32_t spiClockFrequency=1UL*1000*1000, uint8_t ldac_pin=-1) : AD57X1(cs_pin, spi, 2, spiClockFrequency, ldac_pin) {}
+    AD5781(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=1) : AD57X1(cs_pin, spi, 2, spiClockFrequency, ldac_pin, cs_polarity) {}
 };
 
 class AD5791: public AD57X1 {
   public:
-    AD5791(uint8_t cs_pin, SPIClass* spi, uint32_t spiClockFrequency=1UL*1000*1000, uint8_t ldac_pin=-1) : AD57X1(cs_pin, spi, 0, spiClockFrequency, ldac_pin) {}
+    AD5791(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=1) : AD57X1(cs_pin, spi, 0, spiClockFrequency, ldac_pin, cs_polarity) {}
 };
 #endif
