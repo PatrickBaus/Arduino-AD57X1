@@ -23,6 +23,7 @@ class AD57X1 {
   public:
     AD57X1(const uint8_t cs_pin, SPIClass* const _spi, const uint8_t VALUE_OFFSET, const uint32_t spiClockFrequency, uint8_t const ldac_pin, const bool cs_polarity);
     void setValue(const uint32_t value);
+    uint32_t readValue();
     void enableOutput();
     void setOffsetBinaryEncoding(const bool enable);
     void setInternalAmplifier(const bool enable);
@@ -65,7 +66,8 @@ class AD57X1 {
     static const uint32_t SW_CONTROL_REGISTER = 0b100UL << 20;
     static const uint8_t SW_CONTROL_LDAC = 0b001;
 
-    void writeSPI(uint32_t value);
+    void writeSPI(const uint32_t value);
+    uint32_t readSPI(const uint32_t value);
 
     const uint8_t PIN_CS;   // The ~Chip select pin used to address the DAC
     const int16_t PIN_LDAC;   // The ~LDAC select pin used to address the DAC

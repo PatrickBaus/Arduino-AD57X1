@@ -15,19 +15,39 @@
 #include "ad57X1.h"
 
 // Use CPOL = 0,  CPHA = 1 for ADI DACs
-AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _VALUE_OFFSET, uint32_t spiClockFrequency, uint8_t _ldac_pin, const bool cs_polarity) : VALUE_OFFSET(_VALUE_OFFSET), spi(_spi), PIN_CS(_cs_pin), PIN_LDAC(_ldac_pin), CS_POLARITY(cs_polarity), spi_settings(SPISettings(spiClockFrequency, MSBFIRST, SPI_MODE1)) {
+AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _VALUE_OFFSET, uint32_t spiClockFrequency, uint8_t _ldac_pin, const bool cs_polarity) :
+  VALUE_OFFSET(_VALUE_OFFSET),
+  spi(_spi), PIN_CS(_cs_pin),
+  PIN_LDAC(_ldac_pin),
+  CS_POLARITY(cs_polarity),
+  spi_settings(SPISettings(spiClockFrequency, MSBFIRST, SPI_MODE1)) {
 }
 
 void AD57X1::writeSPI(const uint32_t value) {
-  this->spi->beginTransaction(this->spi_settings);
   digitalWrite (this->PIN_CS, this->CS_POLARITY);
 
+  this->spi->beginTransaction(this->spi_settings);
   this->spi->transfer((value >> 16) & 0xFF);
   this->spi->transfer((value >> 8) & 0xFF);
   this->spi->transfer((value >> 0) & 0xFF);
+  this->spi->endTransaction();
 
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
+}
+
+uint32_t AD57X1::readSPI(const uint32_t value) {
+  uint32_t result;
+  this->writeSPI(value);
+  digitalWrite (this->PIN_CS, this->CS_POLARITY);
+
+  this->spi->beginTransaction(this->spi_settings);
+  result  = (uint32_t)this->spi->transfer(0x00) << 16;
+  result |= (uint32_t)this->spi->transfer(0x00) << 8;
+  result |= (uint32_t)this->spi->transfer(0x00);
   this->spi->endTransaction();
+
+  digitalWrite(this->PIN_CS, !this->CS_POLARITY);
+  return readvalue;
 }
 
 void AD57X1::updateControlRegister() {
@@ -43,7 +63,19 @@ void AD57X1::setValue(const uint32_t value) {
   uint32_t command = this->WRITE_REGISTERS | this->DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
   this->writeSPI(command);
-  this->writeSPI(this->SW_CONTROL_REGISTER | this->SW_CONTROL_LDAC);
+
+  if (this->PIN_LDAC >= 0) {
+    digitalWrite(this->PIN_LDAC, HIGH);
+    digitalWrite(this->PIN_LDAC, LOW);
+  } else {
+    this->writeSPI(this->SW_CONTROL_REGISTER | this->SW_CONTROL_LDAC);
+  }
+}
+
+uint32_t AD57X1::readValue() {
+  uint32_t command = this->READ_REGISTERS | this->DAC_REGISTER;
+  uint32_t result = this->readSPI(command) >> this->VALUE_OFFSET;
+  return result;
 }
 
 void AD57X1::enableOutput() {
@@ -88,7 +120,7 @@ void AD57X1::setReferenceInputRange(const bool enableCompensation) {
 
 void AD57X1::begin(const bool initSpi) {
   pinMode(this->PIN_CS, OUTPUT);
-  digitalWrite(this->PIN_CS, HIGH);
+  digitalWrite(this->PIN_CS, !this->CS_POLARITY);
 
   if (this->PIN_LDAC >= 0) {
     pinMode(this->PIN_LDAC, OUTPUT);
