@@ -47,7 +47,7 @@ uint32_t AD57X1::readSPI(const uint32_t value) {
   this->spi->endTransaction();
 
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
-  return readvalue;
+  return result;
 }
 
 void AD57X1::updateControlRegister() {
