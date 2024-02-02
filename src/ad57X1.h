@@ -21,19 +21,19 @@
 
 class AD57X1 {
   public:
-    AD57X1(const uint8_t cs_pin, SPIClass* const _spi, const uint8_t VALUE_OFFSET, const uint32_t spiClockFrequency, uint8_t const ldac_pin, const bool cs_polarity);
-    void setValue(const uint32_t value);
+    AD57X1(uint8_t cs_pin, SPIClass* const _spi, uint8_t VALUE_OFFSET, uint32_t spiClockFrequency, uint8_t ldac_pin, bool cs_polarity);
+    void setValue(uint32_t value);
     uint32_t readValue();
     void enableOutput();
-    void setOffsetBinaryEncoding(const bool enable);
-    void setInternalAmplifier(const bool enable);
-    void setOutputClamp(const bool enable);
-    void setTristateMode(const bool enable);
-    void setReferenceInputRange(const bool enable);
+    void setOffsetBinaryEncoding(bool enable);
+    void setInternalAmplifier(bool enable);
+    void setOutputClamp(bool enable);
+    void setTristateMode(bool enable);
+    void setReferenceInputRange(bool enable);
     void updateControlRegister();
-    void setClearCodeValue(const uint32_t value);
+    void setClearCodeValue(uint32_t value);
     void reset();
-    void begin(const bool initSpi=true);
+    void begin(bool initSpi=true);
 
   private:
     const uint8_t VALUE_OFFSET;
@@ -66,8 +66,8 @@ class AD57X1 {
     static const uint32_t SW_CONTROL_REGISTER = 0b100UL << 20;
     static const uint8_t SW_CONTROL_LDAC = 0b001;
 
-    void writeSPI(const uint32_t value);
-    uint32_t readSPI(const uint32_t value);
+    void writeSPI(uint32_t value);
+    uint32_t readSPI(uint32_t value);
 
     const uint8_t PIN_CS;   // The ~Chip select pin used to address the DAC
     const int16_t PIN_LDAC;   // The ~LDAC select pin used to address the DAC
@@ -84,11 +84,11 @@ class AD57X1 {
 
 class AD5781: public AD57X1 {
   public:
-    AD5781(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=1) : AD57X1(cs_pin, spi, 2, spiClockFrequency, ldac_pin, cs_polarity) {}
+    AD5781(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=true) : AD57X1(cs_pin, spi, 2, spiClockFrequency, ldac_pin, cs_polarity) {}
 };
 
 class AD5791: public AD57X1 {
   public:
-    AD5791(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=1) : AD57X1(cs_pin, spi, 0, spiClockFrequency, ldac_pin, cs_polarity) {}
+    AD5791(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=true) : AD57X1(cs_pin, spi, 0, spiClockFrequency, ldac_pin, cs_polarity) {}
 };
 #endif

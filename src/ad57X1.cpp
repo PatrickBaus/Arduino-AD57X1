@@ -24,7 +24,7 @@ AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _VALUE_OFFSE
 }
 
 void AD57X1::writeSPI(const uint32_t value) {
-  digitalWrite (this->PIN_CS, this->CS_POLARITY);
+  digitalWrite(this->PIN_CS, this->CS_POLARITY);
 
   this->spi->beginTransaction(this->spi_settings);
   this->spi->transfer((value >> 16) & 0xFF);
@@ -38,7 +38,7 @@ void AD57X1::writeSPI(const uint32_t value) {
 uint32_t AD57X1::readSPI(const uint32_t value) {
   uint32_t result;
   this->writeSPI(value);
-  digitalWrite (this->PIN_CS, this->CS_POLARITY);
+  digitalWrite(this->PIN_CS, this->CS_POLARITY);
 
   this->spi->beginTransaction(this->spi_settings);
   result  = (uint32_t)this->spi->transfer(0x00) << 16;
@@ -51,7 +51,13 @@ uint32_t AD57X1::readSPI(const uint32_t value) {
 }
 
 void AD57X1::updateControlRegister() {
-  this->writeSPI(this->WRITE_REGISTERS | this->CONTROL_REGISTER | this->controlRegister);
+  this->writeSPI(AD57X1::WRITE_REGISTERS | AD57X1::CONTROL_REGISTER | AD57X1::controlRegister);
+}
+
+void AD57X1::setClearCodeValue(const uint32_t value) {
+    uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::CLEARCODE_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+
+    this->writeSPI(command);
 }
 
 void AD57X1::reset() {
@@ -60,7 +66,7 @@ void AD57X1::reset() {
 
 // value is an 18 or 20 bit value
 void AD57X1::setValue(const uint32_t value) {
-  uint32_t command = this->WRITE_REGISTERS | this->DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+  uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
   this->writeSPI(command);
 
@@ -68,12 +74,12 @@ void AD57X1::setValue(const uint32_t value) {
     digitalWrite(this->PIN_LDAC, HIGH);
     digitalWrite(this->PIN_LDAC, LOW);
   } else {
-    this->writeSPI(this->SW_CONTROL_REGISTER | this->SW_CONTROL_LDAC);
+    this->writeSPI(AD57X1::SW_CONTROL_REGISTER | AD57X1::SW_CONTROL_LDAC);
   }
 }
 
 uint32_t AD57X1::readValue() {
-  uint32_t command = this->READ_REGISTERS | this->DAC_REGISTER;
+  uint32_t command = AD57X1::READ_REGISTERS | AD57X1::DAC_REGISTER;
   uint32_t result = this->readSPI(command) >> this->VALUE_OFFSET;
   return result;
 }
@@ -87,26 +93,26 @@ void AD57X1::enableOutput() {
 void AD57X1::setInternalAmplifier(const bool enable) {
   // (1 << this->RBUF_REGISTER) : internal amplifier is disabled (default)
   // (0 << this->RBUF_REGISTER) : internal amplifier is enabled
-  this->controlRegister = (this->controlRegister & ~(1 << this->RBUF_REGISTER)) | (!enable << this->RBUF_REGISTER);
+  this->controlRegister = (this->controlRegister & ~(1 << AD57X1::RBUF_REGISTER)) | (!enable << AD57X1::RBUF_REGISTER);
 }
 
 // Setting this to enabled will overrule the tristate mode and clamp the output to GND
 void AD57X1::setOutputClamp(const bool enable) {
   // (1 << this->OUTPUT_CLAMP_TO_GND_REGISTER) : the output is clamped to GND (default)
   // (0 << this->OUTPUT_CLAMP_TO_GND_REGISTER) : the dac is in normal mode
-  this->controlRegister = (this->controlRegister & ~(1 << this->OUTPUT_CLAMP_TO_GND_REGISTER)) | (enable << this->OUTPUT_CLAMP_TO_GND_REGISTER);
+  this->controlRegister = (this->controlRegister & ~(1 << AD57X1::OUTPUT_CLAMP_TO_GND_REGISTER)) | (enable << AD57X1::OUTPUT_CLAMP_TO_GND_REGISTER);
 }
 
 void AD57X1::setTristateMode(const bool enable) {
   // (1 << this->OUTPUT_TRISTATE_REGISTER) : the dac output is in tristate mode (default)
   // (0 << this->OUTPUT_TRISTATE_REGISTER) : the dac is in normal mode
-  this->controlRegister = (this->controlRegister & ~(1 << this->OUTPUT_TRISTATE_REGISTER)) | (enable << this->OUTPUT_TRISTATE_REGISTER);
+  this->controlRegister = (this->controlRegister & ~(1 << AD57X1::OUTPUT_TRISTATE_REGISTER)) | (enable << AD57X1::OUTPUT_TRISTATE_REGISTER);
 }
 
 void AD57X1::setOffsetBinaryEncoding(const bool enable) {
   // (1 << this->OFFSET_BINARY_REGISTER) : the dac uses offset binary encoding, should be used when writing unsigned ints
   // (0 << this->OFFSET_BINARY_REGISTER) : the dac uses 2s complement encoding, should be used when writing signed ints (default)
-  this->controlRegister = (this->controlRegister & ~(1 << this->OFFSET_BINARY_REGISTER)) | (enable << this->OFFSET_BINARY_REGISTER);
+  this->controlRegister = (this->controlRegister & ~(1 << AD57X1::OFFSET_BINARY_REGISTER)) | (enable << AD57X1::OFFSET_BINARY_REGISTER);
 }
 
 /* Linearity error compensation
@@ -115,7 +121,7 @@ void AD57X1::setOffsetBinaryEncoding(const bool enable) {
 // enable = 0 -> Range 0-10 V
 // enable = 1 -> Range 0-20 V
 void AD57X1::setReferenceInputRange(const bool enableCompensation) {
-  this->controlRegister = (this->controlRegister & ~(0b1111 << this->LINEARITY_COMPENSATION_REGISTER)) | ((enableCompensation ? this->REFERENCE_RANGE_20V : this->REFERENCE_RANGE_10V) << this->LINEARITY_COMPENSATION_REGISTER);
+  this->controlRegister = (this->controlRegister & ~(0b1111 << AD57X1::LINEARITY_COMPENSATION_REGISTER)) | ((enableCompensation ? AD57X1::REFERENCE_RANGE_20V : AD57X1::REFERENCE_RANGE_10V) << AD57X1::LINEARITY_COMPENSATION_REGISTER);
 }
 
 void AD57X1::begin(const bool initSpi) {
