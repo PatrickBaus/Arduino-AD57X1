@@ -21,7 +21,7 @@
 
 class AD57X1 {
   public:
-    AD57X1(uint8_t cs_pin, SPIClass* const _spi, uint8_t VALUE_OFFSET, uint32_t spiClockFrequency, uint8_t ldac_pin, bool cs_polarity);
+    AD57X1(uint8_t cs_pin, SPIClass* _spi, uint8_t VALUE_OFFSET, uint32_t spiClockFrequency, int16_t ldac_pin, bool cs_polarity);
     void setValue(uint32_t value);
     uint32_t readValue();
     void enableOutput();
@@ -84,11 +84,11 @@ class AD57X1 {
 
 class AD5781: public AD57X1 {
   public:
-    AD5781(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=true) : AD57X1(cs_pin, spi, 2, spiClockFrequency, ldac_pin, cs_polarity) {}
+    AD5781(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const int16_t ldac_pin=-1, const bool cs_polarity=true) : AD57X1(cs_pin, spi, 2, spiClockFrequency, ldac_pin, cs_polarity) {}
 };
 
 class AD5791: public AD57X1 {
   public:
-    AD5791(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const uint8_t ldac_pin=-1, const bool cs_polarity=true) : AD57X1(cs_pin, spi, 0, spiClockFrequency, ldac_pin, cs_polarity) {}
+    AD5791(const uint8_t cs_pin, SPIClass* spi, const uint32_t spiClockFrequency=1UL*1000*1000, const int16_t ldac_pin=-1, const bool cs_polarity=true) : AD57X1(cs_pin, spi, 0, spiClockFrequency, ldac_pin, cs_polarity) {}
 };
 #endif
