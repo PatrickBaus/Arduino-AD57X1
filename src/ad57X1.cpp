@@ -15,7 +15,7 @@
 #include "ad57X1.h"
 
 // Use CPOL = 0,  CPHA = 1 for ADI DACs
-AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _VALUE_OFFSET, uint32_t spiClockFrequency, uint8_t _ldac_pin, const bool cs_polarity) :
+AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _VALUE_OFFSET, uint32_t spiClockFrequency, int16_t _ldac_pin, const bool cs_polarity) :
   VALUE_OFFSET(_VALUE_OFFSET),
   spi(_spi), PIN_CS(_cs_pin),
   PIN_LDAC(_ldac_pin),
@@ -136,6 +136,5 @@ void AD57X1::begin(const bool initSpi) {
   if (initSpi) {
     this->spi->begin();
   }
-  //this->reset();
 }
 
