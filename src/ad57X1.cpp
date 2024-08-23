@@ -124,6 +124,13 @@ void AD57X1::setReferenceInputRange(const bool enableCompensation) {
   this->controlRegister = (this->controlRegister & ~(0b1111 << AD57X1::LINEARITY_COMPENSATION_REGISTER)) | ((enableCompensation ? AD57X1::REFERENCE_RANGE_20V : AD57X1::REFERENCE_RANGE_10V) << AD57X1::LINEARITY_COMPENSATION_REGISTER);
 }
 
+uint32_t AD57X1::readControlRegister() {
+    uint32_t command = AD57X1::READ_REGISTERS | AD57X1::CONTROL_REGISTER;
+    uint32_t result = this->readSPI(command);
+    return result;
+}
+
+
 void AD57X1::begin(const bool initSpi) {
   pinMode(this->PIN_CS, OUTPUT);
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);

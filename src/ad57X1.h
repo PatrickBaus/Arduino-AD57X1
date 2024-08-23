@@ -24,6 +24,7 @@ class AD57X1 {
     AD57X1(uint8_t cs_pin, SPIClass* _spi, uint8_t VALUE_OFFSET, uint32_t spiClockFrequency, int16_t ldac_pin, bool cs_polarity);
     void setValue(uint32_t value);
     uint32_t readValue();
+    uint32_t readControlRegister();
     void enableOutput();
     void setOffsetBinaryEncoding(bool enable);
     void setInternalAmplifier(bool enable);
