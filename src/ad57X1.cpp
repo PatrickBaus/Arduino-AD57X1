@@ -15,15 +15,15 @@
 #include "ad57X1.h"
 
 // Use CPOL = 0,  CPHA = 1 for ADI DACs
-AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _VALUE_OFFSET, uint32_t spiClockFrequency, int16_t _ldac_pin, const bool cs_polarity) :
-  VALUE_OFFSET(_VALUE_OFFSET),
+AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _value_offset, const uint32_t spiClockFrequency, int16_t _ldac_pin, const bool cs_polarity) :
+  VALUE_OFFSET(_value_offset),
   spi(_spi), PIN_CS(_cs_pin),
   PIN_LDAC(_ldac_pin),
   CS_POLARITY(cs_polarity),
   spi_settings(SPISettings(spiClockFrequency, MSBFIRST, SPI_MODE1)) {
 }
 
-void AD57X1::writeSPI(const uint32_t value) {
+void AD57X1::writeSPI(const uint32_t value) const {
   digitalWrite(this->PIN_CS, this->CS_POLARITY);
 
   this->spi->beginTransaction(this->spi_settings);
@@ -35,27 +35,26 @@ void AD57X1::writeSPI(const uint32_t value) {
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
 }
 
-uint32_t AD57X1::readSPI(const uint32_t value) {
-  uint32_t result;
+uint32_t AD57X1::readSPI(const uint32_t value) const {
   this->writeSPI(value);
   digitalWrite(this->PIN_CS, this->CS_POLARITY);
 
   this->spi->beginTransaction(this->spi_settings);
-  result  = (uint32_t)this->spi->transfer(0x00) << 16;
-  result |= (uint32_t)this->spi->transfer(0x00) << 8;
-  result |= (uint32_t)this->spi->transfer(0x00);
+  uint32_t result = static_cast<uint32_t>(this->spi->transfer(0x00)) << 16;
+  result |= static_cast<uint32_t>(this->spi->transfer(0x00)) << 8;
+  result |= static_cast<uint32_t>(this->spi->transfer(0x00));
   this->spi->endTransaction();
 
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
   return result;
 }
 
-void AD57X1::updateControlRegister() {
+void AD57X1::updateControlRegister() const {
   this->writeSPI(AD57X1::WRITE_REGISTERS | AD57X1::CONTROL_REGISTER | AD57X1::controlRegister);
 }
 
-void AD57X1::setClearCodeValue(const uint32_t value) {
-    uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::CLEARCODE_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+void AD57X1::setClearCodeValue(const uint32_t value) const {
+    constexpr uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::CLEARCODE_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
     this->writeSPI(command);
 }
@@ -65,8 +64,8 @@ void AD57X1::reset() {
 }
 
 // value is an 18 or 20 bit value
-void AD57X1::setValue(const uint32_t value) {
-  uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+void AD57X1::setValue(const uint32_t value) const {
+  constexpr uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
   this->writeSPI(command);
 
@@ -78,9 +77,9 @@ void AD57X1::setValue(const uint32_t value) {
   }
 }
 
-uint32_t AD57X1::readValue() {
-  uint32_t command = AD57X1::READ_REGISTERS | AD57X1::DAC_REGISTER;
-  uint32_t result = this->readSPI(command) >> this->VALUE_OFFSET;
+uint32_t AD57X1::readValue() const {
+  constexpr uint32_t command = AD57X1::READ_REGISTERS | AD57X1::DAC_REGISTER;
+  const uint32_t result = this->readSPI(command) >> this->VALUE_OFFSET;
   return result;
 }
 
@@ -115,23 +114,24 @@ void AD57X1::setOffsetBinaryEncoding(const bool enable) {
   this->controlRegister = (this->controlRegister & ~(1 << AD57X1::OFFSET_BINARY_REGISTER)) | (enable << AD57X1::OFFSET_BINARY_REGISTER);
 }
 
-/* Linearity error compensation
- * 
+/*
+ * Linearity error compensation
  */
 // enable = 0 -> Range 0-10 V
 // enable = 1 -> Range 0-20 V
 void AD57X1::setReferenceInputRange(const bool enableCompensation) {
-  this->controlRegister = (this->controlRegister & ~(0b1111 << AD57X1::LINEARITY_COMPENSATION_REGISTER)) | ((enableCompensation ? AD57X1::REFERENCE_RANGE_20V : AD57X1::REFERENCE_RANGE_10V) << AD57X1::LINEARITY_COMPENSATION_REGISTER);
+  this->controlRegister =
+    (this->controlRegister & ~(0b1111 << AD57X1::LINEARITY_COMPENSATION_REGISTER))
+    | ((enableCompensation ? AD57X1::REFERENCE_RANGE_20V : AD57X1::REFERENCE_RANGE_10V) << AD57X1::LINEARITY_COMPENSATION_REGISTER);
 }
 
-uint32_t AD57X1::readControlRegister() {
-    uint32_t command = AD57X1::READ_REGISTERS | AD57X1::CONTROL_REGISTER;
-    uint32_t result = this->readSPI(command);
+uint32_t AD57X1::readControlRegister() const {
+  constexpr uint32_t command = AD57X1::READ_REGISTERS | AD57X1::CONTROL_REGISTER;
+    const uint32_t result = this->readSPI(command);
     return result;
 }
 
-
-void AD57X1::begin(const bool initSpi) {
+void AD57X1::begin(const bool initSpi) const {
   pinMode(this->PIN_CS, OUTPUT);
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
 
