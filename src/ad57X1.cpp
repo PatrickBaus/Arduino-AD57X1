@@ -54,7 +54,7 @@ void AD57X1::updateControlRegister() const {
 }
 
 void AD57X1::setClearCodeValue(const uint32_t value) const {
-    constexpr uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::CLEARCODE_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+    const uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::CLEARCODE_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
     this->writeSPI(command);
 }
@@ -65,7 +65,7 @@ void AD57X1::reset() {
 
 // value is an 18 or 20 bit value
 void AD57X1::setValue(const uint32_t value) const {
-  constexpr uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+  const uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
 
   this->writeSPI(command);
 
