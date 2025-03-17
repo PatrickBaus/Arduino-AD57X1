@@ -78,8 +78,8 @@ class AD57X1 {
       | (1 << OUTPUT_CLAMP_TO_GND_REGISTER)
       | (1 << OUTPUT_TRISTATE_REGISTER)
       | (1 << OFFSET_BINARY_REGISTER)
-      | (0 << SDO_DISABLE_REGISTER)
-      | (REFERENCE_RANGE_10V << LINEARITY_COMPENSATION_REGISTER);    // This is the default register after reset (see p. 22 of the datasheet)
+      | (0 << SDO_DISABLE_REGISTER)  // cppcheck-suppress badBitmaskCheck
+      | (REFERENCE_RANGE_10V << LINEARITY_COMPENSATION_REGISTER);  // cppcheck-suppress badBitmaskCheck // This is the default register after reset (see p. 22 of the datasheet)
     SPISettings spi_settings;
 };
 
