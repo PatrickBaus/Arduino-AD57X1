@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Unit tests & coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libgtest-dev
+          pipx install gcovr
+
+      - name: Build
+        run: |
+          cmake -S test -B build -DAD57X1_COVERAGE=ON
+          cmake --build build --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Check coverage (100 % required)
+        run: |
+          gcovr --root . --filter src/ --exclude-throw-branches \
+            --txt --txt-summary \
+            --html-details coverage.html \
+            --fail-under-line 100 --fail-under-function 100 --fail-under-branch 100 \
+            build | tee coverage.txt
+          {
+            echo '### Coverage'
+            echo '```'
+            cat coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.*
+          if-no-files-found: ignore
+
+  cppcheck:
+    name: Static analysis (cppcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        # badBitmaskCheck: The "0 << BIT" and "WRITE_REGISTERS |" terms are intentional documentation of the registers
+        run: |
+          cppcheck --enable=warning,style,performance,portability --inline-suppr --std=c++17 \
+            --suppress=missingIncludeSystem --suppress=badBitmaskCheck \
+            --error-exitcode=1 -I test/mocks src
+
+  arduino-lint:
+    name: Arduino Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/arduino-lint-action@v2
+        with:
+          project-type: library
+          library-manager: false
+          compliance: specification
+
+  compile-examples:
+    name: Compile examples (${{ matrix.board.fqbn }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - fqbn: arduino:avr:uno
+            platforms: |
+              - name: arduino:avr
+          - fqbn: arduino:samd:mkrzero
+            platforms: |
+              - name: arduino:samd
+          - fqbn: esp32:esp32:esp32
+            platforms: |
+              - name: esp32:esp32
+                source-url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          - fqbn: teensy:avr:teensy41
+            platforms: |
+              - name: teensy:avr
+                source-url: https://www.pjrc.com/teensy/package_teensy_index.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: ${{ matrix.board.fqbn }}
+          platforms: ${{ matrix.board.platforms }}
+          # Install the library from the checkout
+          libraries: |
+            - source-path: ./
+          sketch-paths: |
+            - examples
+          enable-warnings-report: false
+          enable-deltas-report: false
