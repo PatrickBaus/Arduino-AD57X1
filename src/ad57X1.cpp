@@ -24,28 +24,32 @@ AD57X1::AD57X1(uint8_t _cs_pin, SPIClass* const _spi, const uint8_t _value_offse
 }
 
 void AD57X1::writeSPI(const uint32_t value) const {
+  // Claim the bus (and set the SPI mode) before asserting CS. Otherwise the clock line might still idle at the wrong
+  // level and an interrupt using the same bus could start a transfer while this DAC is already selected.
+  this->spi->beginTransaction(this->spi_settings);
   digitalWrite(this->PIN_CS, this->CS_POLARITY);
 
-  this->spi->beginTransaction(this->spi_settings);
   this->spi->transfer((value >> 16) & 0xFF);
   this->spi->transfer((value >> 8) & 0xFF);
   this->spi->transfer((value >> 0) & 0xFF);
-  this->spi->endTransaction();
 
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
+  this->spi->endTransaction();
 }
 
 uint32_t AD57X1::readSPI(const uint32_t value) const {
   this->writeSPI(value);
+
+  // Clock out the register content using a NOP command (0x000000)
+  this->spi->beginTransaction(this->spi_settings);
   digitalWrite(this->PIN_CS, this->CS_POLARITY);
 
-  this->spi->beginTransaction(this->spi_settings);
   uint32_t result = static_cast<uint32_t>(this->spi->transfer(0x00)) << 16;
   result |= static_cast<uint32_t>(this->spi->transfer(0x00)) << 8;
   result |= static_cast<uint32_t>(this->spi->transfer(0x00));
-  this->spi->endTransaction();
 
   digitalWrite(this->PIN_CS, !this->CS_POLARITY);
+  this->spi->endTransaction();
   return result;
 }
 
@@ -54,9 +58,9 @@ void AD57X1::updateControlRegister() const {
 }
 
 void AD57X1::setClearCodeValue(const uint32_t value) const {
-    const uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::CLEARCODE_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+  const uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::CLEARCODE_REGISTER | ((value << this->VALUE_OFFSET) & AD57X1::REGISTER_DATA_MASK);
 
-    this->writeSPI(command);
+  this->writeSPI(command);
 }
 
 void AD57X1::reset() {
@@ -65,7 +69,7 @@ void AD57X1::reset() {
 
 // value is an 18 or 20 bit value
 void AD57X1::setValue(const uint32_t value) const {
-  const uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::DAC_REGISTER | ((value << this->VALUE_OFFSET) & 0xFFFFF);
+  const uint32_t command = AD57X1::WRITE_REGISTERS | AD57X1::DAC_REGISTER | ((value << this->VALUE_OFFSET) & AD57X1::REGISTER_DATA_MASK);
 
   this->writeSPI(command);
 
@@ -79,7 +83,8 @@ void AD57X1::setValue(const uint32_t value) const {
 
 uint32_t AD57X1::readValue() const {
   constexpr uint32_t command = AD57X1::READ_REGISTERS | AD57X1::DAC_REGISTER;
-  const uint32_t result = this->readSPI(command) >> this->VALUE_OFFSET;
+  // The upper 4 bits of the 24 bit frame are the R/W bit and the register address, not data. Strip them.
+  const uint32_t result = (this->readSPI(command) & AD57X1::REGISTER_DATA_MASK) >> this->VALUE_OFFSET;
   return result;
 }
 
@@ -127,8 +132,9 @@ void AD57X1::setReferenceInputRange(const bool enableCompensation) {
 
 uint32_t AD57X1::readControlRegister() const {
   constexpr uint32_t command = AD57X1::READ_REGISTERS | AD57X1::CONTROL_REGISTER;
-    const uint32_t result = this->readSPI(command);
-    return result;
+  // The upper 4 bits of the 24 bit frame are the R/W bit and the register address, not data. Strip them.
+  const uint32_t result = this->readSPI(command) & AD57X1::REGISTER_DATA_MASK;
+  return result;
 }
 
 void AD57X1::begin(const bool initSpi) const {
