@@ -15,7 +15,9 @@
 #ifndef ARDUINO_AD57X1
 #define ARDUINO_AD57X1
 
-#include <cstdint>    // uint8_t, etc.
+// Do not use <cstdint> here. It is not available on AVR boards (e.g. the Arduino Uno), because avr-gcc does not ship
+// the C++ standard library.
+#include <Arduino.h>  // uint8_t, digitalWrite(), etc.
 // include the SPI library:
 #include <SPI.h>
 
@@ -44,6 +46,8 @@ class AD57X1 {
     // DAC read/write mode
     static constexpr uint32_t WRITE_REGISTERS = 0UL << 23;
     static constexpr uint32_t READ_REGISTERS = 1UL << 23;
+    // The lower 20 bits of each 24 bit frame are the register content
+    static constexpr uint32_t REGISTER_DATA_MASK = 0xFFFFFUL;
 
     // DAC value register (p. 21)
     static constexpr uint32_t DAC_REGISTER = 0b001UL << 20;
@@ -79,7 +83,9 @@ class AD57X1 {
       | (1 << OUTPUT_TRISTATE_REGISTER)
       | (1 << OFFSET_BINARY_REGISTER)
       | (0 << SDO_DISABLE_REGISTER)  // cppcheck-suppress badBitmaskCheck
-      | (REFERENCE_RANGE_10V << LINEARITY_COMPENSATION_REGISTER);  // cppcheck-suppress badBitmaskCheck // This is the default register after reset (see p. 22 of the datasheet)
+      | (REFERENCE_RANGE_10V << LINEARITY_COMPENSATION_REGISTER);  // cppcheck-suppress badBitmaskCheck
+      // Note: This is the default register after reset (see p. 22 of the datasheet), except for the encoding. The DAC
+      // defaults to 2s complement, while this library defaults to offset binary.
     SPISettings spi_settings;
 };
 

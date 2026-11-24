@@ -1,4 +1,4 @@
-#include "src/Arduino-AD57X1/src/ad57X1.h"
+#include <ad57X1.h>
 
 #define CS_AD5781              7
 

@@ -6,7 +6,7 @@ This library is still work in progress and not all features of the DACs are supp
 This is a simple example, to get going. Check out the more in depth examples in [/examples/](./examples/)
 
 ```C++
-#include "src/Arduino-AD57X1/src/ad57X1.h"
+#include <ad57X1.h>
 
 #define CS_AD5781              7
 AD5781 ad5781(CS_AD5781, &SPI);   // Use AD5791 if using the 20 bit version
